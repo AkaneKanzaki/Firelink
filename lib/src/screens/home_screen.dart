@@ -466,6 +466,16 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               const SizedBox(height: 16),
+              Text(
+                '© 2026 AkaneKanzaki. All rights reserved.\nLicensed under the MIT License.',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextTertiary
+                      : AppColors.lightTextTertiary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
               InkWell(
                 onTap: () async {
                   final url = Uri.parse(
