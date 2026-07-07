@@ -38,12 +38,23 @@ android {
                 keyPassword = keystoreProperties["keyPassword"] as String
                 storeFile = file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String
+                
+                enableV3Signing = true
+                enableV4Signing = true
             }
         }
     }
 
     buildTypes {
         release {
+            // Explicitly enable R8 minification & resource shrinking for better protection
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             val keystorePropertiesFile = rootProject.file("key.properties")

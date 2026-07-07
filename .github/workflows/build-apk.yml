@@ -71,9 +71,9 @@ jobs:
           # Decode the base64 keystore
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
 
-      # 7. Build the Android APK with Dynamic Versioning
+      # 7. Build the Android APK with Dynamic Versioning and Obfuscation
       - name: Build APK
-        run: flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+        run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
 
       # 8. Upload the generated APK as a workflow artifact
       - name: Upload APK
