@@ -1,0 +1,83 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'      # Triggers on tags like v1.0.1
+      - '*.*.*'   # Triggers on tags like 1.0.1
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      # 2. Set up Java for Android build
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Set up Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      # 4. Install dependencies
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 5. Extract Version for APK
+      - name: Extract Version
+        id: version
+        run: |
+          # Use GitHub Action Run Number as the Android build-number (integer)
+          echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+          
+          # Check if this workflow was triggered by a Tag / Release
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Strip the 'v' prefix if it exists (e.g. v1.0.1 -> 1.0.1)
+            VERSION_NAME=${{ github.ref_name }}
+            VERSION_NAME=${VERSION_NAME#v}
+            echo "BUILD_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          else
+            # If not a tag release, use a snapshot version
+            echo "BUILD_NAME=1.0.0-snapshot" >> $GITHUB_ENV
+          fi
+
+      # 6. Configure Keystore from Secrets
+      - name: Setup Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_PROPERTIES: ${{ secrets.KEY_PROPERTIES }}
+        run: |
+          # Create key.properties file
+          echo "$KEY_PROPERTIES" > android/key.properties
+          
+          # Decode the base64 keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+      # 7. Build the Android APK with Dynamic Versioning
+      - name: Build APK
+        run: flutter build apk --release --build-name=$BUILD_NAME --build-number=$BUILD_NUMBER
+
+      # 8. Upload the generated APK as a workflow artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
