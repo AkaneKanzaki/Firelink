@@ -6,6 +6,8 @@ import '../providers/topology_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/file_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 /// Landing screen with options to create a new project or open an existing one.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -123,92 +125,109 @@ class _HomeScreenState extends State<HomeScreen>
                   position: _slideUp,
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 400),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Icon/Logo
-                  _buildAppIcon(isDark),
-                  const SizedBox(height: 20),
-                  // Title
-                  Text(
-                    'Firelink',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -1,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.lightTextPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Network Simulator & Designer',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: isDark
-                          ? AppColors.darkTextSecondary
-                          : AppColors.lightTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                      children: [
+                        // Icon/Logo
+                        _buildAppIcon(isDark),
+                        const SizedBox(height: 20),
+                        // Title
+                        Text(
+                          'Firelink',
+                          style: Theme.of(context).textTheme.displaySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -1,
+                                color: isDark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.lightTextPrimary,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Network Simulator & Designer',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                              ),
+                        ),
+                        const SizedBox(height: 32),
 
-                // New Project Button
-                _buildPrimaryButton(
-                  context: context,
-                  icon: Icons.add_rounded,
-                  label: loc.get('home_new_project'),
-                  isDark: isDark,
-                  onTap: () => _createNewProject(context),
+                        // New Project Button
+                        _buildPrimaryButton(
+                          context: context,
+                          icon: Icons.add_rounded,
+                          label: loc.get('home_new_project'),
+                          isDark: isDark,
+                          onTap: () => _createNewProject(context),
+                        ),
+                        const SizedBox(height: 12),
+                        // Open Project Button
+                        _buildSecondaryButton(
+                          context: context,
+                          icon: Icons.folder_open_rounded,
+                          label: loc.get('home_open_project'),
+                          isDark: isDark,
+                          onTap: () => _openProject(context),
+                        ),
+                        const SizedBox(height: 12),
+                        // Practice / Tutorial Button
+                        _buildSecondaryButton(
+                          context: context,
+                          icon: Icons.school_rounded,
+                          label: loc.get('home_tutorial'),
+                          isDark: isDark,
+                          onTap: () {
+                            Navigator.pushNamed(context, '/tutorial-selection');
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        // About Button
+                        _buildSecondaryButton(
+                          context: context,
+                          icon: Icons.info_outline_rounded,
+                          label: 'About Firelink',
+                          isDark: isDark,
+                          onTap: () => _showAboutDialog(context, isDark),
+                        ),
+                        const SizedBox(height: 32),
+                        // Version info
+                        FutureBuilder<PackageInfo>(
+                          future: PackageInfo.fromPlatform(),
+                          builder: (context, snapshot) {
+                            final version = snapshot.hasData
+                                ? snapshot.data!.version
+                                : '1.0.0';
+                            return Text(
+                              'v$version',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: isDark
+                                        ? AppColors.darkTextTertiary
+                                        : AppColors.lightTextTertiary,
+                                  ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 12),
-                // Open Project Button
-                _buildSecondaryButton(
-                  context: context,
-                  icon: Icons.folder_open_rounded,
-                  label: loc.get('home_open_project'),
-                  isDark: isDark,
-                  onTap: () => _openProject(context),
-                ),
-                const SizedBox(height: 12),
-                // Practice / Tutorial Button
-                _buildSecondaryButton(
-                  context: context,
-                  icon: Icons.school_rounded,
-                  label: loc.get('home_tutorial'),
-                  isDark: isDark,
-                  onTap: () {
-                    Navigator.pushNamed(context, '/tutorial-selection');
-                  },
-                ),
-                const SizedBox(height: 32),
-                // Version info
-                FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) {
-                    final version = snapshot.hasData ? snapshot.data!.version : '1.0.0';
-                    return Text(
-                      'v$version',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isDark
-                            ? AppColors.darkTextTertiary
-                            : AppColors.lightTextTertiary,
-                      ),
-                    );
-                  }
-                ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
-    ),
-  ),
-);
+        );
       },
     );
   }
-  
+
   Widget _buildAppIcon(bool isDark) {
     return Container(
       width: 72,
@@ -383,6 +402,127 @@ class _HomeScreenState extends State<HomeScreen>
   void _createNewProject(BuildContext context) {
     context.read<TopologyProvider>().clearTopology();
     Navigator.pushNamed(context, '/workspace');
+  }
+
+  void _showAboutDialog(BuildContext context, bool isDark) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark
+              ? AppColors.darkSurface
+              : AppColors.lightSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.info_rounded,
+                color: isDark ? AppColors.primaryCyan : AppColors.primaryTeal,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'About Firelink',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Firelink is a high-performance network topology simulator built with Flutter.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Created by',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextTertiary
+                      : AppColors.lightTextTertiary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '@AkaneKanzaki (Muhammad Rizky Aulia)',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.lightTextPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () async {
+                  final url = Uri.parse(
+                    'https://github.com/AkaneKanzaki/Firelink',
+                  );
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.code_rounded,
+                        size: 20,
+                        color: isDark
+                            ? AppColors.primaryCyan
+                            : AppColors.primaryTeal,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'View on GitHub',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: isDark
+                              ? AppColors.primaryCyan
+                              : AppColors.primaryTeal,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _openProject(BuildContext context) async {
