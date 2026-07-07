@@ -1,4 +1,4 @@
-package com.firelink.firelink
+package com.firelink
 
 import io.flutter.embedding.android.FlutterActivity
 
