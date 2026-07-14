@@ -98,24 +98,25 @@ class SimulationProvider extends ChangeNotifier {
           _currentStepIndex++;
           updated = true;
 
-          // Add 1 line of console output per step if available
           if (_pendingConsoleOutput.isNotEmpty) {
-            _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            int remainingSteps = _groupedSteps.length - _currentStepIndex;
+            int linesToTake = remainingSteps > 0 ? (_pendingConsoleOutput.length / remainingSteps).ceil() : _pendingConsoleOutput.length;
+            for (int i = 0; i < linesToTake && _pendingConsoleOutput.isNotEmpty; i++) {
+              _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            }
           }
-        } else if (_pendingConsoleOutput.isNotEmpty) {
-          // Finish dumping console output
-          _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+        } else {
+          if (_pendingConsoleOutput.isNotEmpty) {
+            _consoleOutput.addAll(_pendingConsoleOutput);
+            _pendingConsoleOutput.clear();
+          }
           if (_currentStepIndex < _groupedSteps.length) {
             _currentStepIndex++;
           }
-          updated = true;
-        } else {
-          // Animation finished
           _isSimulating = false;
           timer.cancel();
-          _isSimulating = false;
           _playbackTimer?.cancel();
-          notifyListeners();
+          updated = true;
         }
 
         if (updated) {
@@ -184,17 +185,23 @@ class SimulationProvider extends ChangeNotifier {
           updated = true;
 
           if (_pendingConsoleOutput.isNotEmpty) {
-            _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            int remainingSteps = _groupedSteps.length - _currentStepIndex;
+            int linesToTake = remainingSteps > 0 ? (_pendingConsoleOutput.length / remainingSteps).ceil() : _pendingConsoleOutput.length;
+            for (int i = 0; i < linesToTake && _pendingConsoleOutput.isNotEmpty; i++) {
+              _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            }
           }
-        } else if (_pendingConsoleOutput.isNotEmpty) {
-          _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+        } else {
+          if (_pendingConsoleOutput.isNotEmpty) {
+            _consoleOutput.addAll(_pendingConsoleOutput);
+            _pendingConsoleOutput.clear();
+          }
           if (_currentStepIndex < _groupedSteps.length) {
             _currentStepIndex++;
           }
-          updated = true;
-        } else {
           _isSimulating = false;
           timer.cancel();
+          _playbackTimer?.cancel();
           updated = true;
         }
 
@@ -263,17 +270,23 @@ class SimulationProvider extends ChangeNotifier {
           updated = true;
 
           if (_pendingConsoleOutput.isNotEmpty) {
-            _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            int remainingSteps = _groupedSteps.length - _currentStepIndex;
+            int linesToTake = remainingSteps > 0 ? (_pendingConsoleOutput.length / remainingSteps).ceil() : _pendingConsoleOutput.length;
+            for (int i = 0; i < linesToTake && _pendingConsoleOutput.isNotEmpty; i++) {
+              _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+            }
           }
-        } else if (_pendingConsoleOutput.isNotEmpty) {
-          _consoleOutput.add(_pendingConsoleOutput.removeAt(0));
+        } else {
+          if (_pendingConsoleOutput.isNotEmpty) {
+            _consoleOutput.addAll(_pendingConsoleOutput);
+            _pendingConsoleOutput.clear();
+          }
           if (_currentStepIndex < _groupedSteps.length) {
             _currentStepIndex++;
           }
-          updated = true;
-        } else {
           _isSimulating = false;
           timer.cancel();
+          _playbackTimer?.cancel();
           updated = true;
           if (!completer.isCompleted) completer.complete(result);
         }

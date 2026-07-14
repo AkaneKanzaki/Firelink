@@ -121,7 +121,7 @@ class ConnectionPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     if (conn.cableType == CableType.wireless) {
-      _drawDashedLine(canvas, start, end, linePaint, dashWidth: 5, dashSpace: 5);
+      _drawWaveLine(canvas, start, end, linePaint);
     } else if (conn.cableType == CableType.crossover) {
       _drawDashedLine(canvas, start, end, linePaint, dashWidth: 10, dashSpace: 5);
     } else if (conn.cableType == CableType.console) {
@@ -187,6 +187,35 @@ class ConnectionPainter extends CustomPainter {
     
     path.cubicTo(controlPoint1.dx, controlPoint1.dy, controlPoint2.dx, controlPoint2.dy, end.dx, end.dy);
     canvas.drawPath(path, paint);
+  }
+
+  void _drawWaveLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    final distance = (end - start).distance;
+    if (distance <= 0) return;
+    final angle = (end - start).direction;
+    
+    const double waveLength = 12.0;
+    const double amplitude = 6.0;
+    
+    canvas.save();
+    canvas.translate(start.dx, start.dy);
+    canvas.rotate(angle);
+    
+    final path = Path();
+    path.moveTo(0, 0);
+    
+    bool up = true;
+    for (double i = 0; i < distance; i += waveLength) {
+      final double nextX = (i + waveLength > distance) ? distance : i + waveLength;
+      final double midX = i + (nextX - i) / 2;
+      final double controlY = up ? -amplitude : amplitude;
+      
+      path.quadraticBezierTo(midX, controlY * 2, nextX, 0);
+      up = !up;
+    }
+    
+    canvas.drawPath(path, paint);
+    canvas.restore();
   }
 
   NetworkDevice? _findDevice(String id) {

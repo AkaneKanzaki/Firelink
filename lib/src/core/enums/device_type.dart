@@ -137,7 +137,6 @@ extension DeviceTypeExtension on DeviceType {
   /// Whether this device can perform routing (Layer 3).
   bool get canRoute {
     return this == DeviceType.router ||
-        this == DeviceType.wirelessRouter ||
         this == DeviceType.firewall ||
         this == DeviceType.isp;
   }
@@ -154,7 +153,6 @@ extension DeviceTypeExtension on DeviceType {
   bool get supportsDhcp {
     return this == DeviceType.server ||
         this == DeviceType.router ||
-        this == DeviceType.wirelessRouter ||
         this == DeviceType.isp;
   }
 
@@ -162,7 +160,6 @@ extension DeviceTypeExtension on DeviceType {
   bool get supportsAcl {
     return this == DeviceType.router ||
         this == DeviceType.firewall ||
-        this == DeviceType.wirelessRouter ||
         this == DeviceType.isp;
   }
 
@@ -173,7 +170,8 @@ extension DeviceTypeExtension on DeviceType {
   bool get isLayer2Only {
     return this == DeviceType.switchDevice ||
         this == DeviceType.hub ||
-        this == DeviceType.accessPoint;
+        this == DeviceType.accessPoint ||
+        this == DeviceType.wirelessRouter;
   }
 
   /// Whether this device is an end-device that typically requires a default gateway.
@@ -184,7 +182,6 @@ extension DeviceTypeExtension on DeviceType {
         this == DeviceType.smartphone ||
         this == DeviceType.printer ||
         this == DeviceType.ipPhone ||
-        this == DeviceType.wirelessRouter ||
         this == DeviceType.isp;
   }
 
