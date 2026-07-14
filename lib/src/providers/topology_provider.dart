@@ -246,10 +246,11 @@ class TopologyProvider extends ChangeNotifier {
       cableType: cableType,
     );
 
-    // Mark interfaces as connected. They remain in their current status
-    // (default is down/unconfigured) until manually configured.
+    // Mark interfaces as connected and turn them ON automatically.
     ifaceA.connectedToConnectionId = connection.id;
+    ifaceA.status = InterfaceStatus.up;
     ifaceB.connectedToConnectionId = connection.id;
+    ifaceB.status = InterfaceStatus.up;
 
     _connections.add(connection);
     _connectionSourceDeviceId = null;

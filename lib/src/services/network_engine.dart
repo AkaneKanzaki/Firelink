@@ -1,4 +1,5 @@
 import '../core/enums/acl_enums.dart';
+import '../core/enums/cable_type.dart';
 import '../core/enums/device_type.dart';
 import '../core/enums/interface_status.dart';
 import '../core/enums/packet_type.dart';
@@ -1205,14 +1206,40 @@ class NetworkEngine {
 
   Connection? _findConnectionForInterface(String deviceId, String ifaceName) {
     try {
-      return connections.firstWhere(
+      final conn = connections.firstWhere(
         (c) =>
             (c.deviceAId == deviceId && c.interfaceAName == ifaceName) ||
             (c.deviceBId == deviceId && c.interfaceBName == ifaceName),
       );
+
+      // --- Cable Logic Validation ---
+      final devA = _findDevice(conn.deviceAId);
+      final devB = _findDevice(conn.deviceBId);
+      if (devA != null && devB != null) {
+        if (conn.cableType == CableType.straight || conn.cableType == CableType.crossover) {
+          final isMdiA = _isMdi(devA.type);
+          final isMdiB = _isMdi(devB.type);
+          final needsCrossover = (isMdiA == isMdiB);
+
+          if (needsCrossover && conn.cableType != CableType.crossover) {
+            return null; // Link down due to wrong cable
+          }
+          if (!needsCrossover && conn.cableType != CableType.straight) {
+            return null; // Link down due to wrong cable
+          }
+        }
+      }
+
+      return conn;
     } catch (_) {
       return null;
     }
+  }
+
+  bool _isMdi(DeviceType type) {
+    return type != DeviceType.switchDevice &&
+        type != DeviceType.hub &&
+        type != DeviceType.accessPoint;
   }
 
   // ─── DHCP Simulation ───────────────────────────────────────────

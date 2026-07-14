@@ -37,6 +37,32 @@ class IdGenerator {
       return List.generate(count, (i) => '$prefix$i');
     }
 
+    if (type == DeviceType.accessPoint) {
+      List<String> names = [];
+      for (int i = 0; i < count; i++) {
+        if (i == 0) {
+          names.add('Wlan 0/$i');
+        } else {
+          names.add('FastEthernet 0/$i');
+        }
+      }
+      return names;
+    }
+
+    if (type == DeviceType.wirelessRouter) {
+      List<String> names = [];
+      for (int i = 0; i < count; i++) {
+        if (i == 0) {
+          names.add('Wlan 0/$i'); // wireless
+        } else if (i == 1) {
+          names.add('GigabitEthernet 0/WAN'); // WAN
+        } else {
+          names.add('FastEthernet 0/$i'); // LAN
+        }
+      }
+      return names;
+    }
+
     // Network devices use slot/port naming: "GigabitEthernet0/0"
     return List.generate(count, (i) => '$prefix 0/$i');
   }

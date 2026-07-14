@@ -7,6 +7,7 @@ import '../../providers/theme_provider.dart';
 import '../../providers/topology_provider.dart';
 import '../../models/device.dart';
 import '../../core/enums/acl_enums.dart';
+import '../../core/enums/cable_type.dart';
 import 'connection_painter.dart';
 import 'device_painter.dart';
 import 'grid_painter.dart';
@@ -317,9 +318,15 @@ class _TopologyCanvasState extends State<TopologyCanvas> with SingleTickerProvid
         } else {
           final hitConnection = topology.hitTestConnection(canvasPos);
           if (hitConnection != null) {
-            _showDeleteConnectionConfirmation(context, () {
-              topology.removeConnection(hitConnection.id);
-            });
+            if (hitConnection.cableType == CableType.wireless) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cannot manually delete wireless connections. They are managed automatically by distance.')),
+              );
+            } else {
+              _showDeleteConnectionConfirmation(context, () {
+                topology.removeConnection(hitConnection.id);
+              });
+            }
           }
         }
         break;

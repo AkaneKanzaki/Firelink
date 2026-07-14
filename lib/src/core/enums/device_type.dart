@@ -98,7 +98,7 @@ extension DeviceTypeExtension on DeviceType {
       case DeviceType.smartphone:
         return 1; // wireless interface
       case DeviceType.accessPoint:
-        return 2; // 1 wired, 1 wireless
+        return 4; // 1 wired, 3 wireless or mixed
       case DeviceType.wirelessRouter:
         return 5; // 4 LAN, 1 WAN, (and wireless implied)
       case DeviceType.printer:

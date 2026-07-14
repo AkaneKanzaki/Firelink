@@ -778,11 +778,11 @@ class _ServicesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final topology = context.watch<TopologyProvider>();
     final device = topology.devices.firstWhere((d) => d.id == deviceId);
-
+    
     final showDhcp = device.type.supportsDhcp;
     final showAcl = device.type.supportsAcl;
 
-    if (!device.type.hasServices) {
+    if (!device.type.hasServices && device.type != DeviceType.isp) {
       return const Center(
         child: Text('Services not available on this device type.'),
       );
@@ -791,6 +791,18 @@ class _ServicesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (device.type == DeviceType.isp) ...[
+          const ListTile(
+            title: Text('Internet/Cloud Services', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(
+              'This ISP node automatically routes traffic to the simulated internet.\n'
+              'To test internet connectivity, use the PDU tool from any configured PC and ping an external IP (e.g., 8.8.8.8) or setup a route pointing to this ISP.'
+            ),
+          ),
+          const Divider(),
+          const SizedBox(height: 16),
+        ],
+
         if (showDhcp && device.dhcpServerConfig != null) ...[
           const Text(
             'DHCP Server',
