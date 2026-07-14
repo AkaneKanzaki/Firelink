@@ -462,7 +462,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 icon: Icons.restore_rounded,
                 tooltip: 'Reset View',
                 isActive: false,
-                onTap: () => _resetZoom(canvasState),
+                onTap: () => _resetZoom(context, canvasState),
               ),
               const SizedBox(height: 8),
               ToolButton(
@@ -506,9 +506,18 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     canvasState.setScale(matrix.getMaxScaleOnAxis());
   }
 
-  void _resetZoom(CanvasProvider canvasState) {
-    canvasState.transformController.value = Matrix4.identity();
-    canvasState.setScale(1.0);
+  void _resetZoom(BuildContext context, CanvasProvider canvasState) {
+    final topology = context.read<TopologyProvider>();
+    final viewportSize = MediaQuery.of(context).size;
+    
+    if (topology.devices.isNotEmpty) {
+      canvasState.centerOnOffsets(
+        topology.devices.map((d) => d.position).toList(),
+        viewportSize,
+      );
+    } else {
+      canvasState.resetToCenter(viewportSize);
+    }
   }
 
   Widget _buildModeIndicator(BuildContext context, CanvasProvider canvasState) {
