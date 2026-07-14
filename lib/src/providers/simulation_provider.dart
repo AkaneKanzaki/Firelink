@@ -48,7 +48,18 @@ class SimulationProvider extends ChangeNotifier {
 
     final engine = NetworkEngine(devices: devices, connections: connections);
 
-    final result = engine.simulatePing(sourceDeviceId, destIp);
+    late PingResult result;
+    try {
+      result = engine.simulatePing(sourceDeviceId, destIp);
+    } catch (_) {
+      result = PingResult(
+        success: false,
+        sourceIp: '',
+        destIp: destIp,
+        steps: [],
+        consoleOutput: [],
+      );
+    }
     _lastResult = result;
 
     // Group steps by tick

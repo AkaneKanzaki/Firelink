@@ -39,7 +39,8 @@ class RoutingService {
     final routes = <RoutingEntry>[];
 
     for (final iface in interfaces) {
-      if (iface.ipAddress.isNotEmpty && iface.status.name == 'up') {
+      if (iface.ipAddress.isNotEmpty &&
+          iface.status.toString().endsWith('up')) {
         final networkAddr = IpUtils.getNetworkAddress(
           iface.ipAddress,
           iface.subnetMask,

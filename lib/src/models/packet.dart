@@ -15,7 +15,7 @@ class Packet {
   final String destIp;
 
   /// Source MAC address.
-  final String sourceMac;
+  String sourceMac;
 
   /// Destination MAC address (may be broadcast "FF:FF:FF:FF:FF:FF" for ARP).
   String destMac;

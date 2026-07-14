@@ -100,8 +100,22 @@ class NetworkEngine {
       );
     }
 
-    // Determine the source IP (first configured interface).
-    final sourceIface = sourceDevice.interfaces.firstWhere(
+    NetworkInterface? sourceIface;
+
+    // For routers, find the best interface based on the routing table.
+    if (sourceDevice.type.canRoute) {
+      final allRoutes = [
+        ...RoutingService.generateConnectedRoutes(sourceDevice.interfaces),
+        ...sourceDevice.routingTable,
+      ];
+      final route = RoutingService.lookupRoute(allRoutes, destIp);
+      if (route != null) {
+        sourceIface = sourceDevice.getInterface(route.exitInterface);
+      }
+    }
+
+    // Fallback: pick the first configured interface.
+    sourceIface ??= sourceDevice.interfaces.firstWhere(
       (i) => i.ipAddress.isNotEmpty,
       orElse: () => sourceDevice.interfaces.first,
     );
@@ -288,8 +302,8 @@ class NetworkEngine {
         type: PacketType.icmpReply,
         sourceIp: destIp,
         destIp: sourceIface.ipAddress,
-        sourceMac: resolvedMac,
-        destMac: sourceIface.macAddress,
+        sourceMac: packet.destMac,
+        destMac: packet.sourceMac,
       );
 
       final destIface = destDevice.interfaces.firstWhere(
@@ -633,6 +647,7 @@ class NetworkEngine {
     // 1. Routers drop broadcast packets — ARP is L2 and never crosses L3 boundaries.
     if (currentDevice.type.canRoute &&
         !currentDevice.type.canSwitch &&
+        packet.hops.length > 1 &&
         packet.destMac == 'FF:FF:FF:FF:FF:FF') {
       // Allow if it's the destination, or DHCP
       if (!isDestinationIp && packet.destIp != '255.255.255.255') {
@@ -864,6 +879,17 @@ class NetworkEngine {
           output.add(
             '  [${currentDevice.hostname}] Destination directly connected via ${iface.name}.',
           );
+
+          packet.sourceMac = iface.macAddress;
+          final targetDevice = _findDeviceByIp(packet.destIp);
+          if (targetDevice != null) {
+            final targetIface = targetDevice.interfaces.firstWhere(
+              (i) => i.ipAddress == packet.destIp,
+              orElse: () => targetDevice.interfaces.first,
+            );
+            packet.destMac = targetIface.macAddress;
+          }
+
           return _forwardDirectly(
             packet: packet,
             currentDevice: currentDevice,
@@ -989,49 +1015,55 @@ class NetworkEngine {
     required List<String> output,
     required int tick,
   }) {
-    // Find the connection to the next hop.
+    // Find the outgoing interface that reaches the next hop.
+    NetworkInterface? outIface;
     for (final iface in currentDevice.interfaces) {
       if (!iface.isConnected || iface.status != InterfaceStatus.up) continue;
 
-      final conn = _findConnectionForInterface(currentDevice.id, iface.name);
-      if (conn == null) continue;
+      if (!currentDevice.type.canRoute && !currentDevice.type.canSwitch) {
+        outIface = iface;
+        break;
+      }
 
-      final nextDeviceId = conn.getOtherDeviceId(currentDevice.id);
-      final nextDevice = _findDevice(nextDeviceId);
-      if (nextDevice == null) continue;
-
-      // Check if the next device has the next-hop IP.
-      final nextIfaceName = conn.getOtherInterfaceName(currentDevice.id);
-      final nextIface = nextDevice.getInterface(nextIfaceName);
-      if (nextIface == null || nextIface.status != InterfaceStatus.up) continue;
-
-      if (nextIface.ipAddress == nextHopIp) {
-        steps.add(
-          SimulationStep(
-            deviceId: currentDevice.id,
-            description: 'Forwarding to next-hop $nextHopIp via ${iface.name}',
-            packet: packet.copy(),
-            connectionId: conn.id,
-            tick: tick + 1,
-          ),
-        );
-
-        return _routePacket(
-          packet: packet,
-          currentDevice: nextDevice,
-          currentInterface: nextIface,
-          steps: steps,
-          output: output,
-          tick: tick + 1,
-        );
+      if (iface.ipAddress.isNotEmpty &&
+          IpUtils.isInSameSubnet(
+            iface.ipAddress,
+            nextHopIp,
+            iface.subnetMask,
+          )) {
+        outIface = iface;
+        break;
       }
     }
 
-    output.add(
-      '  [${currentDevice.hostname}] Cannot reach next-hop $nextHopIp.',
+    if (outIface == null) {
+      output.add(
+        '  [${currentDevice.hostname}] Cannot find interface to reach next-hop $nextHopIp.',
+      );
+      packet.status = 'unreachable';
+      return false;
+    }
+
+    if (currentDevice.type.canRoute && !currentDevice.type.canSwitch) {
+      packet.sourceMac = outIface.macAddress;
+      final targetDevice = _findDeviceByIp(nextHopIp);
+      if (targetDevice != null) {
+        final targetIface = targetDevice.interfaces.firstWhere(
+          (i) => i.ipAddress == nextHopIp,
+          orElse: () => targetDevice.interfaces.first,
+        );
+        packet.destMac = targetIface.macAddress;
+      }
+    }
+
+    return _forwardDirectly(
+      packet: packet,
+      currentDevice: currentDevice,
+      currentInterface: outIface,
+      steps: steps,
+      output: output,
+      tick: tick,
     );
-    packet.status = 'unreachable';
-    return false;
   }
 
   /// Switches packet: MAC learning and L2 forwarding.
@@ -1212,21 +1244,15 @@ class NetworkEngine {
             (c.deviceBId == deviceId && c.interfaceBName == ifaceName),
       );
 
-      // --- Cable Logic Validation ---
+      // --- Cable Logic Validation (Auto-MDIX Enabled) ---
+      // As requested by the user, we simulate modern Auto-MDIX behavior.
+      // Straight and Crossover cables will work interchangeably on all devices.
       final devA = _findDevice(conn.deviceAId);
       final devB = _findDevice(conn.deviceBId);
       if (devA != null && devB != null) {
-        if (conn.cableType == CableType.straight || conn.cableType == CableType.crossover) {
-          final isMdiA = _isMdi(devA.type);
-          final isMdiB = _isMdi(devB.type);
-          final needsCrossover = (isMdiA == isMdiB);
-
-          if (needsCrossover && conn.cableType != CableType.crossover) {
-            return null; // Link down due to wrong cable
-          }
-          if (!needsCrossover && conn.cableType != CableType.straight) {
-            return null; // Link down due to wrong cable
-          }
+        if (conn.cableType == CableType.straight ||
+            conn.cableType == CableType.crossover) {
+          // Strict MDI/MDI-X validation bypassed for Auto-MDIX simulation.
         }
       }
 
@@ -1236,11 +1262,6 @@ class NetworkEngine {
     }
   }
 
-  bool _isMdi(DeviceType type) {
-    return type != DeviceType.switchDevice &&
-        type != DeviceType.hub &&
-        type != DeviceType.accessPoint;
-  }
 
   // ─── DHCP Simulation ───────────────────────────────────────────
 
