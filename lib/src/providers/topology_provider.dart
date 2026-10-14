@@ -175,9 +175,20 @@ class TopologyProvider extends ChangeNotifier {
 
     final iface = device.interfaces[ifaceIndex];
 
+    // Auto-fill a sensible default mask when an IP is set but no mask
+    // exists yet. Prevents "IP set but cable stays orange" confusion
+    // for users who skip the mask field.
+    var effectiveMask = subnetMask;
+    if (ipAddress != null &&
+        ipAddress.isNotEmpty &&
+        effectiveMask == null &&
+        iface.subnetMask.isEmpty) {
+      effectiveMask = '255.255.255.0';
+    }
+
     final updatedIface = iface.copyWith(
       ipAddress: ipAddress,
-      subnetMask: subnetMask,
+      subnetMask: effectiveMask,
       defaultGateway: defaultGateway,
       dnsServer: dnsServer,
       status: status,

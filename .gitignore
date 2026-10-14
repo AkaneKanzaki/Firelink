@@ -85,3 +85,5 @@ android/build/
 # Keystore files
 *.jks
 key.properties
+# Widget Preview related
+.widget_preview/

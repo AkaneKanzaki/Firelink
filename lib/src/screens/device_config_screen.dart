@@ -193,16 +193,23 @@ class _InterfaceCardState extends State<_InterfaceCard> {
   @override
   void didUpdateWidget(covariant _InterfaceCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.iface.ipAddress != widget.iface.ipAddress) {
+    // Only overwrite the text field when the saved model actually changed
+    // and differs from what the user is currently typing. This avoids
+    // cursor jumps while typing.
+    if (oldWidget.iface.ipAddress != widget.iface.ipAddress &&
+        _ipController.text != widget.iface.ipAddress) {
       _ipController.text = widget.iface.ipAddress;
     }
-    if (oldWidget.iface.subnetMask != widget.iface.subnetMask) {
+    if (oldWidget.iface.subnetMask != widget.iface.subnetMask &&
+        _maskController.text != widget.iface.subnetMask) {
       _maskController.text = widget.iface.subnetMask;
     }
-    if (oldWidget.iface.defaultGateway != widget.iface.defaultGateway) {
+    if (oldWidget.iface.defaultGateway != widget.iface.defaultGateway &&
+        _gatewayController.text != (widget.iface.defaultGateway ?? '')) {
       _gatewayController.text = widget.iface.defaultGateway ?? '';
     }
-    if (oldWidget.iface.dnsServer != widget.iface.dnsServer) {
+    if (oldWidget.iface.dnsServer != widget.iface.dnsServer &&
+        _dnsController.text != (widget.iface.dnsServer ?? '')) {
       _dnsController.text = widget.iface.dnsServer ?? '';
     }
   }
@@ -410,6 +417,16 @@ class _InterfaceCardState extends State<_InterfaceCard> {
                 label: 'IP Address',
                 controller: _ipController,
                 readOnly: widget.iface.isDhcpClient,
+                onChanged: (value) {
+                  if (!widget.iface.isDhcpClient &&
+                      (value.isEmpty || IpUtils.isValidIp(value))) {
+                    context.read<TopologyProvider>().configureInterface(
+                      widget.deviceId,
+                      widget.iface.name,
+                      ipAddress: value,
+                    );
+                  }
+                },
                 onSubmitted: (value) {
                   if (!widget.iface.isDhcpClient &&
                       (value.isEmpty || IpUtils.isValidIp(value))) {
@@ -428,6 +445,16 @@ class _InterfaceCardState extends State<_InterfaceCard> {
                 label: 'Subnet Mask',
                 controller: _maskController,
                 readOnly: widget.iface.isDhcpClient,
+                onChanged: (value) {
+                  if (!widget.iface.isDhcpClient &&
+                      IpUtils.isValidSubnetMask(value)) {
+                    context.read<TopologyProvider>().configureInterface(
+                      widget.deviceId,
+                      widget.iface.name,
+                      subnetMask: value,
+                    );
+                  }
+                },
                 onSubmitted: (value) {
                   if (!widget.iface.isDhcpClient &&
                       IpUtils.isValidSubnetMask(value)) {
@@ -448,6 +475,16 @@ class _InterfaceCardState extends State<_InterfaceCard> {
                   label: 'Default Gateway',
                   controller: _gatewayController,
                   readOnly: widget.iface.isDhcpClient,
+                  onChanged: (value) {
+                    if (!widget.iface.isDhcpClient &&
+                        (value.isEmpty || IpUtils.isValidIp(value))) {
+                      context.read<TopologyProvider>().configureInterface(
+                        widget.deviceId,
+                        widget.iface.name,
+                        defaultGateway: value,
+                      );
+                    }
+                  },
                   onSubmitted: (value) {
                     if (!widget.iface.isDhcpClient &&
                         (value.isEmpty || IpUtils.isValidIp(value))) {
@@ -469,6 +506,16 @@ class _InterfaceCardState extends State<_InterfaceCard> {
                   label: 'DNS Server',
                   controller: _dnsController,
                   readOnly: widget.iface.isDhcpClient,
+                  onChanged: (value) {
+                    if (!widget.iface.isDhcpClient &&
+                        (value.isEmpty || IpUtils.isValidIp(value))) {
+                      context.read<TopologyProvider>().configureInterface(
+                        widget.deviceId,
+                        widget.iface.name,
+                        dnsServer: value,
+                      );
+                    }
+                  },
                   onSubmitted: (value) {
                     if (!widget.iface.isDhcpClient &&
                         (value.isEmpty || IpUtils.isValidIp(value))) {
@@ -502,6 +549,7 @@ class _InterfaceCardState extends State<_InterfaceCard> {
     required String label,
     required TextEditingController controller,
     required ValueChanged<String> onSubmitted,
+    ValueChanged<String>? onChanged,
     bool readOnly = false,
   }) {
     return TextField(
@@ -515,6 +563,7 @@ class _InterfaceCardState extends State<_InterfaceCard> {
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
       style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
+      onChanged: onChanged,
       onSubmitted: (value) {
         onSubmitted(value);
         FocusScope.of(context).unfocus();
@@ -522,6 +571,12 @@ class _InterfaceCardState extends State<_InterfaceCard> {
       onEditingComplete: () {
         onSubmitted(controller.text);
         FocusScope.of(context).unfocus();
+      },
+      onTapOutside: (_) {
+        // Persist valid input when focus is lost (tap elsewhere, back
+        // navigation). Previously input was lost unless Done was pressed,
+        // leaving cables orange despite the user typing an IP.
+        onSubmitted(controller.text);
       },
     );
   }

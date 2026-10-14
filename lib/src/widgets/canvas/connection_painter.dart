@@ -79,10 +79,16 @@ class ConnectionPainter extends CustomPainter {
 
       if (aConfigured && bConfigured) {
         if (aNeedsIp && bNeedsIp) {
-          // Both are Layer 3 devices, check if they are in the same subnet
-          if (IpUtils.isInSameSubnet(
-                ifaceA!.ipAddress,
-                ifaceB!.ipAddress,
+          // Both are Layer 3 devices, check if they are in the same subnet.
+          // Empty/invalid masks count as unconfigured (orange), never green.
+          // Null checks inline so Dart promotes ifaceA/ifaceB to non-null.
+          if (ifaceA != null &&
+              ifaceB != null &&
+              IpUtils.isValidSubnetMask(ifaceA.subnetMask) &&
+              IpUtils.isValidSubnetMask(ifaceB.subnetMask) &&
+              IpUtils.isInSameSubnet(
+                ifaceA.ipAddress,
+                ifaceB.ipAddress,
                 ifaceA.subnetMask,
               ) &&
               IpUtils.isInSameSubnet(

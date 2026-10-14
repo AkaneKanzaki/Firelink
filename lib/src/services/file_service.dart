@@ -84,7 +84,7 @@ class FileService {
         // Fallback to path if bytes are null (e.g. on Desktop where withData is false by default if not supported)
         final path = result.files.single.path;
         if (path == null) return null;
-        return loadTopologyFromPath(path);
+        return await loadTopologyFromPath(path);
       }
     } catch (e) {
       return null;
