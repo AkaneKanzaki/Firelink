@@ -10,7 +10,7 @@ plugins {
 android {
     namespace = "com.firelink"
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
