@@ -19,6 +19,10 @@ class RoutingService {
     int bestPrefix = -1;
 
     for (final entry in routingTable) {
+      if (!IpUtils.isValidIp(entry.destination) ||
+          !IpUtils.isValidSubnetMask(entry.subnetMask)) {
+        continue;
+      }
       if (IpUtils.isInSameSubnet(destIp, entry.destination, entry.subnetMask)) {
         final prefix = IpUtils.maskToCidr(entry.subnetMask);
         if (prefix > bestPrefix) {

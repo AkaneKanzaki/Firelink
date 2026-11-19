@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../core/enums/cable_type.dart';
 import '../core/enums/device_type.dart';
 import '../core/enums/interface_status.dart';

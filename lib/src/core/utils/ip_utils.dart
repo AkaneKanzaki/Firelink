@@ -6,12 +6,12 @@ class IpUtils {
 
   /// Validates whether [ip] is a valid IPv4 address.
   static bool isValidIp(String ip) {
-    if (ip.isEmpty) return false;
     final parts = ip.split('.');
     if (parts.length != 4) return false;
     for (final part in parts) {
+      if (!RegExp(r'^\d+$').hasMatch(part)) return false;
       final n = int.tryParse(part);
-      if (n == null || n < 0 || n > 255) return false;
+      if (n == null || n > 255) return false;
     }
     return true;
   }
@@ -27,6 +27,9 @@ class IpUtils {
 
   /// Checks if [ip1] and [ip2] are in the same subnet given [mask].
   static bool isInSameSubnet(String ip1, String ip2, String mask) {
+    if (!isValidIp(ip1) || !isValidIp(ip2) || !isValidSubnetMask(mask)) {
+      return false;
+    }
     final net1 = getNetworkAddress(ip1, mask);
     final net2 = getNetworkAddress(ip2, mask);
     return net1 == net2;
@@ -90,6 +93,7 @@ class IpUtils {
 
   /// Converts a subnet mask to CIDR prefix length.
   static int maskToCidr(String mask) {
+    if (!isValidSubnetMask(mask)) return -1;
     final binary = _ipToBinary(mask);
     return binary.replaceAll('0', '').length;
   }
